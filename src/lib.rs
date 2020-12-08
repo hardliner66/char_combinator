@@ -29,7 +29,8 @@ pub const DEFAULT_RANGE: [char; 52] = [
 ///     assert_eq!(dbg!(strings), vec!["bt", "bu", "bv", "bw"]);
 /// }
 /// ```
-#[derive(Clone)]
+#[cfg_attr(feature = "serialize", derive(Clone, Debug, Serialize, Deserialize))]
+#[cfg_attr(not(feature = "serialize"), derive(Clone, Debug))]
 pub struct CharCombinator<'a> {
     current: Counter,
     range: &'a [char],

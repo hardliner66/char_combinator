@@ -7,6 +7,9 @@ type Counter = BigUint;
 #[cfg(not(feature = "bigint"))]
 type Counter = u128;
 
+#[cfg(feature = "serialize")]
+use serde::{Serialize, Deserialize};
+
 use num_traits::cast::ToPrimitive;
 use num_traits::{One, Zero};
 
@@ -29,13 +32,21 @@ pub const DEFAULT_RANGE: [char; 52] = [
 ///     assert_eq!(dbg!(strings), vec!["bt", "bu", "bv", "bw"]);
 /// }
 /// ```
-#[cfg_attr(feature = "serialize", derive(Clone, Debug, Serialize, Deserialize))]
-#[cfg_attr(not(feature = "serialize"), derive(Clone, Debug))]
+#[cfg(feature="serialize")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CharCombinator {
+    current: Counter,
+    range: Vec<char>,
+}
+
+#[cfg(not(feature="serialize"))]
+#[derive(Clone, Debug)]
 pub struct CharCombinator<'a> {
     current: Counter,
     range: &'a [char],
 }
 
+#[cfg(not(feature="serialize"))]
 impl<'a> CharCombinator<'a> {
     /// Creates a new iterator with a specified range
     pub fn new(range: &'a [char]) -> CharCombinator<'a> {
@@ -59,11 +70,44 @@ impl<'a> CharCombinator<'a> {
     }
 }
 
+#[cfg(feature="serialize")]
+impl CharCombinator {
+    /// Creates a new iterator with a specified range
+    pub fn new(range: &[char]) -> CharCombinator {
+        CharCombinator {
+            current: Zero::zero(),
+            range: range.to_vec(),
+        }
+    }
+
+    /// Creates a new iterator with a specified range, starting at the given count
+    pub fn new_from(start: Counter, range: &[char]) -> CharCombinator {
+        CharCombinator {
+            current: start,
+            range: range.to_vec(),
+        }
+    }
+
+    /// Returns the current count of the iterator.
+    pub fn current(&self) -> &Counter {
+        &self.current
+    }
+}
+
+#[cfg(not(feature="serialize"))]
 impl Default for CharCombinator<'static> {
     fn default() -> Self {
         CharCombinator::new(&DEFAULT_RANGE)
     }
 }
+
+#[cfg(feature="serialize")]
+impl Default for CharCombinator {
+    fn default() -> Self {
+        CharCombinator::new(&DEFAULT_RANGE)
+    }
+}
+
 
 #[inline(always)]
 fn to_letters(range: &[char], u: &Counter) -> String {
@@ -95,7 +139,20 @@ fn to_letters(range: &[char], u: &Counter) -> String {
     return result;
 }
 
+#[cfg(not(feature="serialize"))]
 impl<'a> Iterator for CharCombinator<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<String> {
+        let one: Counter = One::one();
+        self.current += one;
+
+        Some(to_letters(&self.range, &self.current))
+    }
+}
+
+#[cfg(feature="serialize")]
+impl Iterator for CharCombinator {
     type Item = String;
 
     fn next(&mut self) -> Option<String> {
